@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Resume Parser</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --paper:#F5F4EF;
+  --ink:#1D2B33;
+  --ink-soft:#5B6B70;
+  --teal:#2F7A6D;
+  --teal-dim:#DCEAE6;
+  --amber:#D98B3D;
+  --amber-dim:#F3E4D8;
+  --line:#DADFD7;
+  --card:#FFFFFF;
+}
+
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+  padding:36px 24px 60px;
+}
+
+.wrap{ max-width:980px; margin:0 auto; }
+
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--teal);
+  margin-bottom:8px;
+}
+
+h1{
+  font-family:'Fraunces',serif;
+  font-weight:700;
+  font-size:34px;
+  margin:0 0 6px;
+}
+
+.sub{
+  color:var(--ink-soft);
+  font-size:14.5px;
+  margin-bottom:28px;
+}
+
+/* Upload card */
+.upload-card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:20px 22px;
+  margin-bottom:28px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.upload-card label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  color:var(--ink-soft);
+}
+input[type=file]{
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+}
+
+/* Layout grid */
+.grid{
+  display:grid;
+  grid-template-columns:280px 1fr;
+  gap:20px;
+}
+@media (max-width:760px){ .grid{ grid-template-columns:1fr; } }
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:18px 20px;
+  margin-bottom:20px;
+}
+
+.card h3{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--amber);
+  margin:0 0 6px;
+}
+
+.card p{
+  margin:0;
+  font-size:14px;
+  line-height:1.55;
+}
+.card p a{ color:var(--teal); }
+
+.quickfacts .fact{ margin-bottom:16px; }
+.quickfacts .fact:last-child{ margin-bottom:0; }
+
+.tag{
+  display:inline-block;
+  background:var(--teal-dim);
+  color:var(--teal);
+  border-radius:100px;
+  padding:4px 11px;
+  margin:3px 4px 3px 0;
+  font-size:12.5px;
+  font-weight:500;
+}
+.tag.miss{
+  background:var(--amber-dim);
+  color:var(--amber);
+}
+.skill-label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--ink-soft);
+  margin:10px 0 6px;
+}
+.skill-label:first-child{ margin-top:0; }
+
+textarea#jobInput{
+  width:100%;
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  resize:vertical;
+}
+
+button#matchBtn{
+  margin-top:10px;
+  padding:9px 18px;
+  border-radius:8px;
+  border:1px solid var(--ink);
+  background:var(--ink);
+  color:white;
+  font-family:'Inter',sans-serif;
+  font-size:13px;
+  cursor:pointer;
+}
+button#matchBtn:hover{ background:var(--teal); border-color:var(--teal); }
+
+.score{
+  font-family:'Fraunces',serif;
+  font-size:30px;
+  font-weight:700;
+  margin-bottom:10px;
+}
+
+details.raw{
+  margin-top:6px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--card);
+  padding:14px 18px;
+}
+details.raw summary{
+  cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+pre#output{
+  white-space:pre-wrap;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11.5px;
+  line-height:1.6;
+  color:var(--ink-soft);
+  max-height:260px;
+  overflow:auto;
+  margin:12px 0 0;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Pinnacle Labs · AI Track</div>
+  <h1>AI Resume Parser</h1>
+  <p class="sub">Upload a résumé and we'll pull out the fields a recruiter dashboard would want.</p>
+
+  <div class="upload-card">
+    <label for="fileInput">Upload résumé (.pdf or .docx)</label>
+    <input type="file" id="fileInput" accept=".pdf,.docx">
+  </div>
+
+  <div class="grid">
+
+    <!-- Left column: quick facts -->
+    <div class="quickfacts">
+      <div class="card">
+        <div class="fact">
+          <h3>Name</h3>
+          <p id="nameOutput">—</p>
+        </div>
+        <div class="fact">
+          <h3>Email</h3>
+          <p id="emailOutput">—</p>
+        </div>
+        <div class="fact">
+          <h3>Phone</h3>
+          <p id="phoneOutput">—</p>
+        </div>
+        <div class="fact">
+          <h3>LinkedIn</h3>
+          <p id="linkedinOutput">—</p>
+        </div>
+        <div class="fact">
+          <h3>GitHub</h3>
+          <p id="githubOutput">—</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: sections -->
+    <div class="sections">
+      <div class="card">
+        <h3>Summary</h3>
+        <p id="summaryOutput">—</p>
+      </div>
+
+      <div class="card">
+        <h3>Skills</h3>
+        <div id="skillsOutput">—</div>
+      </div>
+
+      <div class="card">
+        <h3>Education</h3>
+        <p id="educationOutput">—</p>
+      </div>
+
+      <div class="card">
+        <h3>Experience</h3>
+        <p id="experienceOutput">—</p>
+      </div>
+
+      <div class="card">
+        <h3>Certifications</h3>
+        <p id="certificationsOutput">—</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Job match card: its own section, not nested inside anything else -->
+  <div class="card">
+    <h3>Job Match Score</h3>
+    <p style="margin-bottom:10px;">Paste a job description to see how well this résumé matches.</p>
+    <textarea id="jobInput" rows="5" placeholder="Paste a job description here..."></textarea>
+    <br>
+    <button id="matchBtn">Check match</button>
+    <div id="matchResult" style="margin-top:16px;"></div>
+  </div>
+
+  <details class="raw">
+    <summary>Raw extracted text</summary>
+    <pre id="output"></pre>
+  </details>
+
+</div>
+
+<!-- Libraries that read PDF and Word files in the browser -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+  const fileInput = document.getElementById('fileInput');
+  const output = document.getElementById('output');
+  let lastParsedSkills = null;
+
+  // Known section header names we'll look for in resumes
+  const SECTION_HEADERS = {
+    summary: ['summary', 'profile', 'objective'],
+    skills: ['technical skills', 'skills'],
+    education: ['education'],
+    experience: ['experience', 'projects', 'work experience'],
+    certifications: ['certifications', 'certification'],
+    activities: ['activities', 'additional strengths', 'achievements'],
+    languages: ['language', 'languages']
+  };
+
+  fileInput.addEventListener('change', async function() {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    output.textContent = 'Reading file...';
+
+    const extension = file.name.split('.').pop().toLowerCase();
+
+    let text = '';
+    if (extension === 'pdf') {
+      text = await readPdf(file);
+    } else if (extension === 'docx') {
+      text = await readDocx(file);
+    } else {
+      text = 'Please upload a .pdf or .docx file.';
+    }
+
+    output.textContent = text;
+    document.getElementById('emailOutput').textContent = extractEmail(text);
+    document.getElementById('phoneOutput').textContent = extractPhone(text);
+    document.getElementById('nameOutput').textContent = extractName(text);
+    document.getElementById('linkedinOutput').textContent = extractLinkedIn(text);
+    document.getElementById('githubOutput').textContent = extractGithub(text);
+    const sections = segmentSections(text);
+    document.getElementById('summaryOutput').textContent = sections.summary || 'not found';
+    const parsedSkills = parseSkills(sections.skills);
+    document.getElementById('skillsOutput').innerHTML = renderSkillsHTML(parsedSkills);
+    lastParsedSkills = parsedSkills;
+    document.getElementById('educationOutput').textContent = sections.education || 'not found';
+    document.getElementById('experienceOutput').textContent = sections.experience || 'not found';
+    document.getElementById('certificationsOutput').textContent = sections.certifications || 'not found';
+  });
+
+  async function readPdf(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    let fullText = '';
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const content = await page.getTextContent();
+      const strings = content.items.map(item => item.str);
+      fullText += strings.join(' ') + '\n';
+    }
+    return fullText;
+  }
+
+  async function readDocx(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+    return result.value;
+  }
+
+  function extractEmail(text) {
+    const match = text.match(/[\w.+-]+@[\w-]+\.[a-zA-Z.]{2,}/);
+    return match ? match[0] : 'not found';
+  }
+
+  function extractPhone(text) {
+    const match = text.match(/(\+?\d[\d\s\-()]{7,}\d)/);
+    return match ? match[0] : 'not found';
+  }
+
+  function extractName(text) {
+    let start = text.split(/[|@]/)[0];
+    start = start.split(',')[0];
+    const words = start.trim().split(/\s+/).slice(0, 3);
+    return words.join(' ') || 'not found';
+  }
+
+  function extractLinkedIn(text) {
+    const match = text.match(/linkedin\.com\/\s?[^\s|,]+/i);
+    return match ? match[0].replace(/\s+/g, '').replace(/[).,]+$/, '') : 'not found';
+  }
+
+  function extractGithub(text) {
+    const match = text.match(/github\.com\/\s?[^\s|,]+/i);
+    return match ? match[0].replace(/\s+/g, '').replace(/[).,]+$/, '') : 'not found';
+  }
+
+  function parseSkills(skillsText) {
+    if (!skillsText) return null;
+
+    const categoryWords = ['languages', 'tools', 'other', 'frameworks', 'libraries', 'ai & data', 'ai&data'];
+    const labelPattern = categoryWords.map(w => w.replace(/&/g, '\\&')).join('|');
+    const labelRegex = new RegExp('\\b(' + labelPattern + ')\\s*:', 'gi');
+
+    const labelMatches = [...skillsText.matchAll(labelRegex)];
+
+    if (labelMatches.length === 0) {
+      return { flat: splitOnCommas(skillsText) };
+    }
+
+    const categories = {};
+    for (let i = 0; i < labelMatches.length; i++) {
+      const label = labelMatches[i][1];
+      const start = labelMatches[i].index + labelMatches[i][0].length;
+      const end = (i + 1 < labelMatches.length) ? labelMatches[i + 1].index : skillsText.length;
+      const chunk = skillsText.slice(start, end).trim();
+      categories[label] = splitOnCommas(chunk);
+    }
+    return { categories };
+  }
+
+  function splitOnCommas(str) {
+    const items = [];
+    let depth = 0;
+    let current = '';
+    for (const ch of str) {
+      if (ch === '(') depth++;
+      if (ch === ')') depth--;
+      if (ch === ',' && depth === 0) {
+        items.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    if (current.trim()) items.push(current.trim());
+    return items.filter(s => s.length > 1 && s.length < 60);
+  }
+
+  function renderSkillsHTML(parsed) {
+    if (!parsed) return 'not found';
+
+    function makeTags(list) {
+      return list.map(skill => `<span class="tag">${skill}</span>`).join('');
+    }
+
+    if (parsed.categories) {
+      let html = '';
+      for (const category in parsed.categories) {
+        html += `<div class="skill-label">${category}</div>${makeTags(parsed.categories[category])}`;
+      }
+      return html;
+    }
+
+    return makeTags(parsed.flat);
+  }
+
+  // ---- Job description matching (Day 3 stretch goal) ----
+
+  function getAllSkillsList(parsedSkills) {
+    if (!parsedSkills) return [];
+    if (parsedSkills.categories) return Object.values(parsedSkills.categories).flat();
+    return parsedSkills.flat || [];
+  }
+
+  function matchSkillsAgainstJob(skillsList, jobText) {
+    const jobLower = jobText.toLowerCase();
+    const matched = [];
+    const missing = [];
+    skillsList.forEach(skill => {
+      // Strip anything in parentheses before comparing, e.g. "Python(NumPy...)" -> "Python"
+      const cleanSkill = skill.replace(/\(.*\)/, '').trim();
+      if (jobLower.includes(cleanSkill.toLowerCase())) {
+        matched.push(skill);
+      } else {
+        missing.push(skill);
+      }
+    });
+    const score = skillsList.length ? Math.round((matched.length / skillsList.length) * 100) : 0;
+    return { matched, missing, score };
+  }
+
+  function renderMatchResult(result) {
+    const matchedTags = result.matched.map(s => `<span class="tag">${s}</span>`).join('');
+    const missingTags = result.missing.map(s => `<span class="tag miss">${s}</span>`).join('');
+    return `
+      <div class="score">${result.score}% match</div>
+      <div class="skill-label">Matched skills</div>${matchedTags || '<p>none</p>'}
+      <div class="skill-label">Missing skills</div>${missingTags || '<p>none</p>'}
+    `;
+  }
+
+  document.getElementById('matchBtn').addEventListener('click', function() {
+    const jobText = document.getElementById('jobInput').value;
+    if (!jobText.trim()) {
+      document.getElementById('matchResult').textContent = 'Paste a job description first.';
+      return;
+    }
+    const skillsList = getAllSkillsList(lastParsedSkills);
+    const result = matchSkillsAgainstJob(skillsList, jobText);
+    document.getElementById('matchResult').innerHTML = renderMatchResult(result);
+  });
+
+  // ---- Section detection ----
+
+  function segmentSections(text) {
+    let allHeaderWords = [];
+    for (const key in SECTION_HEADERS) {
+      allHeaderWords = allHeaderWords.concat(SECTION_HEADERS[key]);
+    }
+    allHeaderWords.sort((a, b) => b.length - a.length);
+
+    const pattern = allHeaderWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+    const headerRegex = new RegExp('\\b(' + pattern + ')\\b', 'gi');
+
+    const matches = [...text.matchAll(headerRegex)];
+
+    const realHeaderMatches = matches.filter(m => {
+      const words = m[0].split(' ');
+      return words.every(w => w.length > 0 && /[A-Z]/.test(w[0]));
+    });
+
+    const finalHeaderMatches = realHeaderMatches.filter(m => {
+      const afterIndex = m.index + m[0].length;
+      const rest = text.slice(afterIndex, afterIndex + 3).trim();
+      return !rest.startsWith(':');
+    });
+
+    const sections = {};
+    for (let i = 0; i < finalHeaderMatches.length; i++) {
+      const matchedWord = finalHeaderMatches[i][0].toLowerCase();
+      const sectionKey = findSectionKey(matchedWord);
+
+      const start = finalHeaderMatches[i].index + finalHeaderMatches[i][0].length;
+      const end = (i + 1 < finalHeaderMatches.length) ? finalHeaderMatches[i + 1].index : text.length;
+
+      sections[sectionKey] = text.slice(start, end).trim();
+    }
+
+    return sections;
+  }
+
+  function findSectionKey(word) {
+    for (const key in SECTION_HEADERS) {
+      if (SECTION_HEADERS[key].includes(word)) return key;
+    }
+    return null;
+  }
+</script>
+
+</body>
+</html>
