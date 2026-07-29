@@ -194,10 +194,9 @@ pre#output{
 
   <div class="eyebrow">Pinnacle Labs · AI Track</div>
   <h1>AI Resume Parser</h1>
-  <p class="sub">Upload a résumé and we'll pull out the fields a recruiter dashboard would want.</p>
-
+<p class="sub">Upload a resume and we'll pull out the fields a recruiter dashboard would want.</p>
   <div class="upload-card">
-    <label for="fileInput">Upload résumé (.pdf or .docx)</label>
+    <label for="fileInput">Upload resume (.pdf or .docx)</label>
     <input type="file" id="fileInput" accept=".pdf,.docx">
   </div>
 
@@ -261,7 +260,7 @@ pre#output{
   <!-- Job match card: its own section, not nested inside anything else -->
   <div class="card">
     <h3>Job Match Score</h3>
-    <p style="margin-bottom:10px;">Paste a job description to see how well this résumé matches.</p>
+    <p style="margin-bottom:10px;">Paste a job description to see how well this resume matches.</p>
     <textarea id="jobInput" rows="5" placeholder="Paste a job description here..."></textarea>
     <br>
     <button id="matchBtn">Check match</button>
@@ -285,6 +284,7 @@ pre#output{
   const fileInput = document.getElementById('fileInput');
   const output = document.getElementById('output');
   let lastParsedSkills = null;
+  let lastResumeText = '';
 
   // Known section header names we'll look for in resumes
   const SECTION_HEADERS = {
@@ -313,8 +313,8 @@ pre#output{
     } else {
       text = 'Please upload a .pdf or .docx file.';
     }
-
     output.textContent = text;
+    lastResumeText = text;
     document.getElementById('emailOutput').textContent = extractEmail(text);
     document.getElementById('phoneOutput').textContent = extractPhone(text);
     document.getElementById('nameOutput').textContent = extractName(text);
@@ -436,29 +436,45 @@ pre#output{
 
     return makeTags(parsed.flat);
   }
-
   // ---- Job description matching (Day 3 stretch goal) ----
 
-  function getAllSkillsList(parsedSkills) {
-    if (!parsedSkills) return [];
-    if (parsedSkills.categories) return Object.values(parsedSkills.categories).flat();
-    return parsedSkills.flat || [];
+  // A vocabulary of common skill/requirement keywords to scan job postings for.
+  const SKILL_VOCABULARY = [
+    'natural language processing', 'information retrieval', 'machine learning',
+    'computer vision', 'deep learning', 'data analysis', 'data science',
+    'artificial intelligence', 'project management', 'team collaboration',
+    'problem solving', 'prompt engineering', 'digital marketing',
+    'cloud computing', 'rest api', 'power bi',
+    'python', 'java', 'javascript', 'typescript', 'html', 'css', 'sql', 'nosql',
+    'mongodb', 'git', 'github', 'docker', 'kubernetes', 'aws', 'azure', 'gcp',
+    'tensorflow', 'pytorch', 'keras', 'scikit-learn', 'pandas', 'numpy',
+    'excel', 'tableau', 'agile', 'scrum', 'nlp', 'llm', 'chatbot', 'crm',
+    'automation', 'communication', 'leadership', 'analytical thinking'
+  ];
+
+  function normalizeForMatching(str) {
+    return str.toLowerCase().replace(/[-_/]/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  function matchSkillsAgainstJob(skillsList, jobText) {
-    const jobLower = jobText.toLowerCase();
+  // Step 1: find which skill-vocabulary terms actually appear in the job posting
+  function extractRequirementsFromJob(jobText) {
+    const normalizedJob = normalizeForMatching(jobText);
+    return SKILL_VOCABULARY.filter(term => normalizedJob.includes(normalizeForMatching(term)));
+  }
+
+  // Step 2: for each of those requirements, check if it appears anywhere in the resume
+  function checkResumeCoverage(requirements, resumeText) {
+    const normalizedResume = normalizeForMatching(resumeText);
     const matched = [];
     const missing = [];
-    skillsList.forEach(skill => {
-      // Strip anything in parentheses before comparing, e.g. "Python(NumPy...)" -> "Python"
-      const cleanSkill = skill.replace(/\(.*\)/, '').trim();
-      if (jobLower.includes(cleanSkill.toLowerCase())) {
-        matched.push(skill);
+    requirements.forEach(req => {
+      if (normalizedResume.includes(normalizeForMatching(req))) {
+        matched.push(req);
       } else {
-        missing.push(skill);
+        missing.push(req);
       }
     });
-    const score = skillsList.length ? Math.round((matched.length / skillsList.length) * 100) : 0;
+    const score = requirements.length ? Math.round((matched.length / requirements.length) * 100) : 0;
     return { matched, missing, score };
   }
 
@@ -466,9 +482,9 @@ pre#output{
     const matchedTags = result.matched.map(s => `<span class="tag">${s}</span>`).join('');
     const missingTags = result.missing.map(s => `<span class="tag miss">${s}</span>`).join('');
     return `
-      <div class="score">${result.score}% match</div>
-      <div class="skill-label">Matched skills</div>${matchedTags || '<p>none</p>'}
-      <div class="skill-label">Missing skills</div>${missingTags || '<p>none</p>'}
+      <div class="score">${result.score}% requirements covered</div>
+      <div class="skill-label">You have these</div>${matchedTags || '<p>none</p>'}
+      <div class="skill-label">Job asks for, resume doesn't mention</div>${missingTags || '<p>none</p>'}
     `;
   }
 
@@ -478,11 +494,15 @@ pre#output{
       document.getElementById('matchResult').textContent = 'Paste a job description first.';
       return;
     }
-    const skillsList = getAllSkillsList(lastParsedSkills);
-    const result = matchSkillsAgainstJob(skillsList, jobText);
+    const requirements = extractRequirementsFromJob(jobText);
+    if (requirements.length === 0) {
+      document.getElementById('matchResult').textContent = "Couldn't detect specific skill requirements in that posting.";
+      return;
+    }
+    const result = checkResumeCoverage(requirements, lastResumeText);
     document.getElementById('matchResult').innerHTML = renderMatchResult(result);
   });
-
+  
   // ---- Section detection ----
 
   function segmentSections(text) {
