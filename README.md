@@ -1,8 +1,8 @@
 # AI Resume Parser
 
-A browser-based tool that extracts and organizes information from resumes (PDF/DOCX). Built for the Pinnacle Labs AI Internship Program.
+A browser based tool that extracts and organizes information from resumes (PDF/DOCX). Built for the Pinnacle Labs AI Internship Program.
 
-**Live demo:** https://hanan-ai-eng.github.io/ai-resume-parser/
+**Live demo:** https://drive.google.com/file/d/1AUoTUcFA1RV9HCE7xjqh4UJhrTydpu5T/view?usp=sharing
 
 ## Features
 
@@ -26,7 +26,7 @@ A browser-based tool that extracts and organizes information from resumes (PDF/D
 1. **Text extraction:** PDF.js or Mammoth.js pulls raw text out of the uploaded file
 2. **Field extraction:** regular expressions locate email, phone, LinkedIn, and GitHub; name is inferred from the first few words of the document
 3. **Section detection:** the parser scans for capitalized section headers (e.g. "SUMMARY", "Skills", "Education"), filters out false positives (like the word "skills" appearing mid-sentence), and splits the text into sections accordingly
-4. **Skill parsing:** if a resume labels sub-categories (e.g. "Languages: Python, SQL..."), the parser detects those labels and groups skills under them, keeping items like `Python(NumPy, Pandas)` intact rather than breaking on internal commas
+4. **Skill parsing:** if a resume labels sub categories (e.g. "Languages: Python, SQL..."), the parser detects those labels and groups skills under them, keeping items like `Python(NumPy, Pandas)` intact rather than breaking on internal commas
 5. **Job matching:** rather than just checking if a job posting happens to mention the candidate's existing skills, the tool extracts the *actual requirements* from the job description first, then checks resume coverage against those requirements. This gives a more meaningful score than a simple keyword overlap
 
 ## Known limitations
